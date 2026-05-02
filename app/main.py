@@ -1,7 +1,7 @@
 #pip install fastapi uvicorn pydantic
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from app.data_loader import load_customer_info, load_energy_usage, load_support_tickets, load_chatbot_interactions
 
 app = FastAPI(
@@ -9,6 +9,49 @@ app = FastAPI(
     description="Backend API for energy usage insights, billing explanations, support ticket checks, and chatbot responses.",
     version="1.0.0"
 )
+
+
+class UsageMetrics(BaseModel):
+    latest_usage_kwh: float
+    average_usage_kwh: float
+    average_charge: float
+    average_peak_demand_kwh: float
+
+
+class UsageAnalysis(BaseModel):
+    usage_flag: str
+    usage_change_percent: float
+
+
+class CustomerInsightResponse(BaseModel):
+    customer_id: str
+    metrics: UsageMetrics
+    analysis: UsageAnalysis
+    insight: str
+    recommendation: str
+    message: str
+
+
+class MonthBillingData(BaseModel):
+    date: str
+    usage_kwh: float
+    total_charge: float
+
+
+class BillingChangeAnalysis(BaseModel):
+    usage_change_kwh: float
+    usage_change_percent: float
+    charge_change: float
+    charge_change_percent: float
+
+
+class BillingExplanationResponse(BaseModel):
+    customer_id: str
+    previous_month: MonthBillingData
+    latest_month: MonthBillingData
+    change_analysis: BillingChangeAnalysis
+    explanation: str
+    message: str
 
 @app.get("/")
 def root():
@@ -37,7 +80,7 @@ def data_summary():
         "message": "Data loaded successfully"
     }
 
-@app.get("/customer-insights/{customer_id}")
+@app.get("/customer-insights/{customer_id}", response_model=CustomerInsightResponse)
 def customer_insights(customer_id: str):
     energy_df = load_energy_usage()
 
@@ -82,7 +125,7 @@ def customer_insights(customer_id: str):
     "recommendation": recommendation,
     "message": "Customer energy insight generated successfully"
 }
-@app.get("/billing-explanation/{customer_id}")
+@app.get("/billing-explanation/{customer_id}", response_model=BillingExplanationResponse)
 def billing_explanation(customer_id: str):
     energy_df = load_energy_usage()
 
